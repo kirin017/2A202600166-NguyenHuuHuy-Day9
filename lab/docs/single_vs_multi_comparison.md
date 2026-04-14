@@ -9,7 +9,7 @@
 
 | Metric | Day 08 (Single Agent) | Day 09 (Multi-Agent) | Delta | Ghi chú |
 |--------|----------------------|---------------------|-------|---------|
-| Avg confidence | 0.70 | 0.33 | -0.37 | Day 09 khắt khe hơn khi không có evidence |
+| Avg confidence | 0.70 | 0.47 | -0.23 | Hệ thống mới tính toán confidence dựa trên Cosine similarity thực tế. |
 | Avg latency (ms) | 1500 | 3175 | +1675 | Multi-agent tốn thêm bước supervisor & workers orchestration |
 | Abstain rate (%) | 10% | 60% | +50% | Multi-agent tuân thủ luật "chỉ trả lời từ context" tốt hơn |
 | Routing visibility | ✗ Không có | ✓ Có route_reason | N/A | Dễ dàng debug step-by-step |

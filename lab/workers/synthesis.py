@@ -71,6 +71,30 @@ def _build_context(chunks: List[Dict[str, Any]], policy_result: Dict[str, Any], 
 
     return "\n".join(parts)
 
+def _estimate_confidence(chunks: List[Dict[str, Any]], answer: str) -> float:
+    """
+    Tính toán confidence thực tế dựa trên retrieval scores và nội dung câu trả lời.
+    """
+    if not chunks:
+        return 0.2 if "Không đủ thông tin" in answer else 0.4
+    
+    # 1. Lấy trung bình cộng của relevance scores từ retrieval
+    avg_chunk_score = sum(c.get("score", 0) for c in chunks) / len(chunks)
+    
+    # 2. Kiểm tra nếu câu trả lời chứa từ khóa phủ định dù có chunks
+    if "không có thông tin" in answer.lower() or "không đủ thông tin" in answer.lower():
+        return round(avg_chunk_score * 0.5, 2) # Giảm 50% nếu có chunks nhưng vẫn không trả lời được
+        
+    # 3. Phạt nếu câu trả lời quá ngắn (có thể thiếu ý)
+    length_penalty = 1.0
+    if len(answer.split()) < 10:
+        length_penalty = 0.8
+        
+    confidence = avg_chunk_score * length_penalty
+    
+    # Giới hạn trong khoảng [0.1, 0.95]
+    return round(max(0.1, min(0.95, confidence)), 2)
+
 def run(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Worker entry point.
@@ -90,15 +114,14 @@ def run(state: Dict[str, Any]) -> Dict[str, Any]:
     
     answer = _call_llm(messages)
     
-    # Simple confidence estimation
-    confidence = 0.9 if chunks else 0.4
-    if "Không đủ thông tin" in answer: confidence = 0.3
+    # Tính toán confidence động
+    confidence = _estimate_confidence(chunks, answer)
     
     worker_io = {
         "worker": WORKER_NAME,
         "input": {"task": task, "has_context": bool(chunks)},
         "output": {"confidence": confidence},
-        "timestamp": datetime.now().isoformat() if 'datetime' in globals() else "2026-04-14"
+        "timestamp": datetime.now().isoformat()
     }
     
     return {
